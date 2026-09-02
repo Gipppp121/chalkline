@@ -1,1 +1,33 @@
-
+name: chalkline
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: derive the seat from the PR label
+        id: seat
+        run: |
+          seat=$(jq -r '[.pull_request.labels[].name] | map(select(startswith("seat:"))) | first // ""' "$GITHUB_EVENT_PATH" | sed 's/^seat://')
+          if [ -z "$seat" ]; then
+            echo "no seat label on this PR; nothing is gated here"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "seat=$seat" >> "$GITHUB_OUTPUT"
+          fi
+      - name: check the diff against the charter
+        if: steps.seat.outputs.skip != 'true'
+        run: |
+          git diff --no-color "origin/$GITHUB_BASE_REF...HEAD" > /tmp/pr.diff
+          node bin/chalkline.mjs check --seat "$SEAT" --diff /tmp/pr.diff | tee /tmp/chalkline.txt
+        env:
+          SEAT: ${{ steps.seat.outputs.seat }}
+      - name: post the evidence block
+        if: always() && steps.seat.outputs.skip != 'true'
+        run: |
+          echo '## chalkline' >> "$GITHUB_STEP_SUMMARY"
+          sed 's/^/    /' /tmp/chalkline.txt >> "$GITHUB_STEP_SUMMARY" || echo '    no output' >> "$GITHUB_STEP_SUMMARY"
