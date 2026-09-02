@@ -1,0 +1,12 @@
+diff --git a/test/parse.test.js b/test/parse.test.js
+index 1111111..2222222 100644
+--- a/test/parse.test.js
++++ b/test/parse.test.js
+@@ -3,3 +3,7 @@ import { parse } from '../src/parse.js';
+ test('parses', () => {
+   expect(parse('a')).toBe('a');
+ });
++
++test('handles empty', () => {
++  expect(parse('')).toBe('');
++});

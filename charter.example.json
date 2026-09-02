@@ -1,0 +1,22 @@
+{
+  "$comment": "Every seat is defined by what it cannot do. Copy to charter.json and edit.",
+  "seats": {
+    "fix-bot": {
+      "stopline": "opens draft PRs only; merging is not this seat's decision",
+      "may_change": ["lint", "test"],
+      "may_touch": ["src/**", "test/**", "tests/**"],
+      "never": ["**/migrations/**", "**/*.lock", ".github/workflows/**"]
+    },
+    "dependency-bot": {
+      "stopline": "bumps versions; never edits the code that consumes them",
+      "may_change": ["lockfile", "config"],
+      "may_touch": ["package.json", "package-lock.json", "requirements*.txt"],
+      "never": ["src/**"]
+    },
+    "docs-bot": {
+      "stopline": "prose only; a code fence in a markdown file is still prose to this seat",
+      "may_change": ["docs"],
+      "may_touch": ["docs/**", "README.md", "**/*.md"]
+    }
+  }
+}

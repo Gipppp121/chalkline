@@ -1,0 +1,12 @@
+{
+  "name": "chalkline",
+  "version": "0.1.0",
+  "description": "Refuses an agent's patch that left the seat it was chartered to work in.",
+  "type": "module",
+  "bin": { "chalkline": "./bin/chalkline.mjs" },
+  "engines": { "node": ">=18" },
+  "scripts": { "test": "node test/run.mjs" },
+  "files": ["bin", "src", "charter.example.json", "README.md", "LICENSE"],
+  "license": "MIT",
+  "keywords": ["ai-agents", "code-review", "guardrails", "ci", "grok-bot", "kimi"]
+}

@@ -1,0 +1,10 @@
+diff --git a/src/pipeline.py b/src/pipeline.py
+index 1111111..2222222 100644
+--- a/src/pipeline.py
++++ b/src/pipeline.py
+@@ -4,4 +4,4 @@ def run(items):
+     for i in items:
+-        handle(i)
+-    cleanup()
++      handle(i)
++      cleanup()

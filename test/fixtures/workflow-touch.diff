@@ -1,0 +1,7 @@
+diff --git a/.github/workflows/deploy.yml b/.github/workflows/deploy.yml
+index 1111111..2222222 100644
+--- a/.github/workflows/deploy.yml
++++ b/.github/workflows/deploy.yml
+@@ -10,3 +10,4 @@ jobs:
+       - run: npm ci
++      - run: npm run deploy -- --prod
