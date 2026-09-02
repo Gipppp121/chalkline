@@ -1,3 +1,4 @@
+[![CI](https://github.com/Gipppp121/chalkline/actions/workflows/ci.yml/badge.svg)](https://github.com/Gipppp121/chalkline/actions/workflows/ci.yml)
 # chalkline
 
 **Refuses an agent's patch that left the seat it was chartered to work in.**
