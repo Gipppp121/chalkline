@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 
 export const CATEGORIES = [
   'lint', 'test', 'docs', 'config', 'lockfile',
-  'logic', 'delete', 'rename', 'binary',
+  'logic', 'delete', 'rename', 'binary', 'secret',
 ];
 
 export function loadCharter(path) {
@@ -40,6 +40,14 @@ export function loadCharter(path) {
     }
     if (seat.never && !Array.isArray(seat.never)) {
       throw new Error(`seat "${name}": never must be an array of globs`);
+    }
+    for (const k of ['max_files', 'max_lines']) {
+      if (seat[k] !== undefined && (!Number.isInteger(seat[k]) || seat[k] < 1)) {
+        throw new Error(`seat "${name}": ${k} must be a positive integer`);
+      }
+    }
+    if (seat.may_change.includes('secret')) {
+      throw new Error(`seat "${name}" allows "secret". No seat may be chartered to change a credential; remove it and handle those by hand.`);
     }
   }
 

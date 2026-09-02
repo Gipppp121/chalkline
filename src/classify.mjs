@@ -17,6 +17,19 @@ const LOCK_GLOBS = [
   '**/package-lock.json', '**/yarn.lock', '**/pnpm-lock.yaml',
   '**/Cargo.lock', '**/poetry.lock', '**/Gemfile.lock', '**/go.sum',
 ];
+// A file whose path or added lines look like a credential is never
+// auto-patchable, whatever its extension says. This is deliberately a
+// path+content heuristic, and it errs toward calling something a secret.
+const SECRET_GLOBS = [
+  '**/.env', '**/.env.*', '**/*.pem', '**/*.key', '**/*.p12', '**/*.pfx',
+  '**/id_rsa', '**/id_ed25519', '**/credentials', '**/*.keystore',
+  '**/secrets.*', '**/*.secrets.*',
+];
+
+// Matches an assignment whose value looks like a live credential.
+const SECRET_LINE = /(?:api[_-]?key|secret|passwd|password|token|private[_-]?key|access[_-]?key|client[_-]?secret)\s*[=:]\s*["']?[A-Za-z0-9/+_\-]{16,}/i;
+const SECRET_BLOCK = /-----BEGIN (?:RSA |EC |OPENSSH |PGP )?PRIVATE KEY-----/;
+
 const CONFIG_GLOBS = [
   '**/*.json', '**/*.toml', '**/*.ini', '**/*.cfg', '**/*.conf',
   '**/*.yaml', '**/*.yml', '.github/**', '**/*.env.example',
@@ -45,6 +58,14 @@ export function classify(file) {
   if (file.binary) return { category: 'binary', notes: ['binary diff; content was not inspected'] };
   if (file.status === 'deleted') return { category: 'delete', notes: ['file removed'] };
   if (file.status === 'renamed') return { category: 'rename', notes: ['path changed'] };
+
+  if (matchesAny(file.path, SECRET_GLOBS)) {
+    return { category: 'secret', notes: ['path matches a credential filename pattern'] };
+  }
+  const secretLine = file.added.find(l => SECRET_LINE.test(l) || SECRET_BLOCK.test(l));
+  if (secretLine) {
+    return { category: 'secret', notes: ['an added line looks like a credential; the value is not printed'] };
+  }
 
   if (matchesAny(file.path, LOCK_GLOBS)) return { category: 'lockfile', notes };
   if (matchesAny(file.path, DOC_GLOBS)) return { category: 'docs', notes };

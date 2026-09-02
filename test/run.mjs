@@ -1,11 +1,11 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { parseDiff, globToRe, matchesAny } from '../src/diff.mjs';
 import { classify } from '../src/classify.mjs';
-import { loadCharter, getSeat } from '../src/charter.mjs';
+import { loadCharter, getSeat, CATEGORIES } from '../src/charter.mjs';
 import { judge } from '../src/verdict.mjs';
-import { renderText, renderJson } from '../src/report.mjs';
+import { renderText, renderJson, renderGithub, renderExplain } from '../src/report.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const fx = n => readFileSync(join(HERE, 'fixtures', n), 'utf8');
@@ -124,6 +124,68 @@ t('report: json carries its own limitations', () => {
   const j = JSON.parse(renderJson(r, { charterPath }));
   ok(j.limits.does_not_read.includes('intent'));
 });
+
+/* --- secrets --- */
+t('classify: a credential-looking added line is a secret', () => {
+  const c = classify(parseDiff(fx('secret-leak.diff'))[0]);
+  eq(c.category, 'secret');
+  ok(c.notes[0].includes('not printed'), 'note did not promise to withhold the value');
+});
+t('report: a secret refusal never echoes the value', () => {
+  const r = judge(parseDiff(fx('secret-leak.diff')), fixSeat, 'fix-bot');
+  const out = renderText(r, { charterPath }) + renderJson(r, { charterPath });
+  ok(!out.includes('EXAMPLE0000NOTAREALKEY0000FIXTURE'), 'the credential leaked into the report');
+});
+t('classify: a credential filename is a secret regardless of content', () => {
+  const f = { path: '.env.production', status: 'added', added: ['X=1'], removed: [], hunks: 1, binary: false };
+  eq(classify(f).category, 'secret');
+});
+t('charter: no seat may be chartered to change a secret', () => {
+  let msg = '';
+  try {
+    const tmp = { seats: { x: { may_change: ['secret'] } } };
+    const p2 = join(HERE, 'fixtures', '.tmp-charter.json');
+    writeFileSync(p2, JSON.stringify(tmp));
+    loadCharter(p2);
+  } catch (e) { msg = e.message; }
+  ok(msg.includes('secret'), 'a secret-allowing charter was accepted');
+});
+
+/* --- scale --- */
+t('verdict: too many files is refused even when every file is allowed', () => {
+  const r = judge(parseDiff(fx('oversized.diff')), fixSeat, 'fix-bot');
+  eq(r.verdict, 'refused');
+  eq(r.crossed.length, 0, 'a file was blamed for what is a whole-patch problem');
+  ok(r.scale[0].includes('6 files'), 'scale reason did not state the count');
+});
+t('verdict: max_lines counts the whole patch', () => {
+  const seat = { may_change: ['test'], max_lines: 3 };
+  const r = judge(parseDiff(fx('oversized.diff')), seat, 'x');
+  eq(r.verdict, 'refused');
+  ok(r.scale.some(s => s.includes('lines')), 'no line-count reason given');
+});
+t('charter: max_files must be a positive integer', () => {
+  ok(CATEGORIES.includes('secret'), 'secret is not a known category');
+});
+
+/* --- output formats --- */
+t('github: refusal becomes a file-scoped error annotation', () => {
+  const r = judge(parseDiff(fx('logic-change.diff')), fixSeat, 'fix-bot');
+  const out = renderGithub(r);
+  ok(out.startsWith('::error file=src/auth.js'), 'annotation was not file-scoped');
+});
+t('github: a held file becomes a warning, not an error', () => {
+  const seat = { may_change: ['logic', 'lint'], may_touch: ['src/**'] };
+  const out = renderGithub(judge(parseDiff(fx('python-whitespace.diff')), seat, 'x'));
+  ok(out.startsWith('::warning'), 'held was reported as an error');
+});
+t('explain: states what the seat cannot produce', () => {
+  const out = renderExplain('fix-bot', fixSeat);
+  ok(out.includes('cannot produce'), 'explain did not list the refusals');
+  ok(out.includes('not thereby correct'), 'explain implied allowed means good');
+});
+
+try { rmSync(join(HERE, 'fixtures', '.tmp-charter.json')); } catch {}
 
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

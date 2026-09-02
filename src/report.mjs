@@ -28,6 +28,12 @@ export function renderText(result, { charterPath }) {
   }
   L.push('');
 
+  if (result.scale && result.scale.length) {
+    L.push('  crossed on scale:');
+    for (const r of result.scale) L.push(`    ! ${r}`);
+    L.push('');
+  }
+
   if (result.crossed.length) {
     L.push('  crossed the stopline:');
     for (const r of result.crossed) {
@@ -61,12 +67,58 @@ export function renderText(result, { charterPath }) {
   return L.join('\n');
 }
 
+// GitHub workflow annotations: refusals land on the PR diff itself,
+// next to the file that caused them, instead of only in a log nobody opens.
+export function renderGithub(result) {
+  const L = [];
+  for (const r of result.crossed) {
+    for (const reason of r.reasons) {
+      L.push(`::error file=${r.path},title=chalkline (${result.seat})::${reason}`);
+    }
+  }
+  for (const r of result.uncertain) {
+    for (const n of r.notes) {
+      L.push(`::warning file=${r.path},title=chalkline (${result.seat})::${n}`);
+    }
+  }
+  for (const s of (result.scale || [])) {
+    L.push(`::error title=chalkline (${result.seat})::${s}`);
+  }
+  if (!L.length) L.push(`::notice title=chalkline (${result.seat})::every changed file is inside the charter`);
+  return L.join('\n');
+}
+
+// Prints a seat's charter as prose. No diff involved: this answers
+// "what is this seat even allowed to do" before anything has run.
+export function renderExplain(seatName, seat) {
+  const L = [];
+  L.push(`seat "${seatName}"`);
+  if (seat.stopline) L.push(`  ${seat.stopline}`);
+  L.push('');
+  L.push(`  may change:  ${seat.may_change.join(', ')}`);
+  if (seat.may_touch && seat.may_touch.length) L.push(`  may touch:   ${seat.may_touch.join(', ')}`);
+  else L.push('  may touch:   any path (no may_touch declared)');
+  if (seat.never && seat.never.length) L.push(`  never:       ${seat.never.join(', ')}`);
+  if (seat.max_files !== undefined) L.push(`  max files:   ${seat.max_files} per patch`);
+  if (seat.max_lines !== undefined) L.push(`  max lines:   ${seat.max_lines} per patch`);
+  L.push('');
+  const cannot = ['logic', 'secret', 'delete', 'rename', 'binary', 'lockfile', 'config', 'docs', 'test', 'lint']
+    .filter(c => !seat.may_change.includes(c));
+  L.push(`  cannot produce: ${cannot.join(', ')}`);
+  L.push('');
+  L.push('  A patch inside all of the above is not thereby correct.');
+  L.push('  This says what the seat is permitted to change, nothing more.');
+  return L.join('\n');
+}
+
 export function renderJson(result, { charterPath }) {
   return JSON.stringify({
     seat: result.seat,
     verdict: result.verdict,
     charter: charterPath,
     files: result.rows,
+    scale: result.scale || [],
+    total_lines: result.totalLines,
     limits: {
       reads: 'the textual diff only',
       does_not_read: 'intent, correctness, test results, or runtime behaviour',

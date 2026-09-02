@@ -3,20 +3,49 @@
   "seats": {
     "fix-bot": {
       "stopline": "opens draft PRs only; merging is not this seat's decision",
-      "may_change": ["lint", "test"],
-      "may_touch": ["src/**", "test/**", "tests/**"],
-      "never": ["**/migrations/**", "**/*.lock", ".github/workflows/**"]
+      "may_change": [
+        "lint",
+        "test"
+      ],
+      "may_touch": [
+        "src/**",
+        "test/**",
+        "tests/**"
+      ],
+      "never": [
+        "**/migrations/**",
+        "**/*.lock",
+        ".github/workflows/**"
+      ],
+      "max_files": 5,
+      "max_lines": 200
     },
     "dependency-bot": {
       "stopline": "bumps versions; never edits the code that consumes them",
-      "may_change": ["lockfile", "config"],
-      "may_touch": ["package.json", "package-lock.json", "requirements*.txt"],
-      "never": ["src/**"]
+      "may_change": [
+        "lockfile",
+        "config"
+      ],
+      "may_touch": [
+        "package.json",
+        "package-lock.json",
+        "requirements*.txt"
+      ],
+      "never": [
+        "src/**"
+      ],
+      "max_files": 3
     },
     "docs-bot": {
       "stopline": "prose only; a code fence in a markdown file is still prose to this seat",
-      "may_change": ["docs"],
-      "may_touch": ["docs/**", "README.md", "**/*.md"]
+      "may_change": [
+        "docs"
+      ],
+      "may_touch": [
+        "docs/**",
+        "README.md",
+        "**/*.md"
+      ]
     }
   }
 }

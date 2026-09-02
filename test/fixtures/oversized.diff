@@ -1,0 +1,36 @@
+diff --git a/test/a.test.js b/test/a.test.js
+index 1111111..2222222 100644
+--- a/test/a.test.js
++++ b/test/a.test.js
+@@ -1,2 +1,3 @@
++test('a', () => {});
+diff --git a/test/b.test.js b/test/b.test.js
+index 1111111..2222222 100644
+--- a/test/b.test.js
++++ b/test/b.test.js
+@@ -1,2 +1,3 @@
++test('b', () => {});
+diff --git a/test/c.test.js b/test/c.test.js
+index 1111111..2222222 100644
+--- a/test/c.test.js
++++ b/test/c.test.js
+@@ -1,2 +1,3 @@
++test('c', () => {});
+diff --git a/test/d.test.js b/test/d.test.js
+index 1111111..2222222 100644
+--- a/test/d.test.js
++++ b/test/d.test.js
+@@ -1,2 +1,3 @@
++test('d', () => {});
+diff --git a/test/e.test.js b/test/e.test.js
+index 1111111..2222222 100644
+--- a/test/e.test.js
++++ b/test/e.test.js
+@@ -1,2 +1,3 @@
++test('e', () => {});
+diff --git a/test/f.test.js b/test/f.test.js
+index 1111111..2222222 100644
+--- a/test/f.test.js
++++ b/test/f.test.js
+@@ -1,2 +1,3 @@
++test('f', () => {});

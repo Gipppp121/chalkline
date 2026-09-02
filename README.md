@@ -1,4 +1,3 @@
-[![CI](https://github.com/Gipppp121/chalkline/actions/workflows/ci.yml/badge.svg)](https://github.com/Gipppp121/chalkline/actions/workflows/ci.yml)
 # chalkline
 
 **Refuses an agent's patch that left the seat it was chartered to work in.**
@@ -101,6 +100,13 @@ chalkline check --seat docs-bot --diff - < patch.diff
 chalkline check --seat fix-bot --json
 ```
 
+Other commands:
+
+```
+chalkline explain --seat fix-bot     # what is this seat even allowed to do
+chalkline seats                      # every declared seat, at a glance
+```
+
 | Exit | Verdict | Meaning |
 | --- | --- | --- |
 | `0` | `allowed` | every changed file is inside the charter |
@@ -135,6 +141,47 @@ If you want held to pass in CI, you have to say so explicitly with
 
 ---
 
+## Secrets are never chartered
+
+A file whose path looks like a credential store, or whose added lines look like
+a live key, is classified `secret`. No seat can be given permission to produce
+one: a charter listing `secret` under `may_change` is rejected when it loads,
+not honoured.
+
+```
+seat "fix-bot" allows "secret". No seat may be chartered to change a
+credential; remove it and handle those by hand.
+```
+
+The matched value is never printed, in any output format. A refusal that echoed
+the key it refused would be the same leak with extra steps.
+
+---
+
+## Scale is its own stopline
+
+`max_files` and `max_lines` describe the patch, not any file in it.
+
+```json
+"fix-bot": {
+  "may_change": ["lint", "test"],
+  "max_files": 5,
+  "max_lines": 200
+}
+```
+
+A patch where every file is inside the charter, but which is six times the size
+that seat usually produces, is still a different kind of event. It is refused on
+scale, and the reason names the count instead of blaming a file that did nothing
+wrong:
+
+```
+  crossed on scale:
+    ! 6 files changed; this seat's charter allows 5
+```
+
+---
+
 ## Categories
 
 | Category | Assigned when |
@@ -144,6 +191,7 @@ If you want held to pass in CI, you have to say so explicitly with
 | `docs` | markdown, rst, txt, `docs/**`, LICENSE, NOTICE |
 | `lockfile` | package-lock, yarn.lock, Cargo.lock, poetry.lock, go.sum, … |
 | `config` | json, toml, ini, yaml, `.github/**` |
+| `secret` | path or added content looks like a credential; never chartered |
 | `logic` | anything that did not match the above |
 | `delete` / `rename` / `binary` | from the diff header, not the content |
 
@@ -165,7 +213,24 @@ as the most restricted thing it could be, not the least.
 - It does not know which seat wrote a patch. You tell it, via `--seat`. A
   mislabelled PR is checked against the wrong charter and chalkline has no way
   to notice.
+- The secret heuristic errs toward calling something a credential. It will flag
+  a long random-looking string assigned to a variable named `token`, whether or
+  not it is live. A false positive here costs you one manual look; the reverse
+  costs more.
 - No scores. No percentages. No "compliance rate". Every output names files.
+
+---
+
+## Annotations in CI
+
+`--format github` turns a refusal into a workflow annotation, so it appears on
+the PR diff next to the file that caused it:
+
+```
+::error file=src/auth.js,title=chalkline (fix-bot)::category "logic" is not in may_change
+```
+
+Held files become warnings rather than errors, because held is not a refusal.
 
 ---
 
@@ -175,7 +240,7 @@ as the most restricted thing it could be, not the least.
 ./test.sh
 ```
 
-29 tests, local fixtures only. No network, no git, no account. CI runs the same
+39 tests, local fixtures only. No network, no git, no account. CI runs the same
 suite on Node 18 and 22.
 
 ---
